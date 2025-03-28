@@ -16,6 +16,11 @@ export class SearchController {
       `Basado en estos documentos:\n\n${docs.join('\n\n')}\n\n Responde: ${query}`,
     );
 
-    return { query, response };
+    const parts = response.split('\n\n').map((text, i) => ({
+      id: i,
+      text: text.trim(),
+    }));
+
+    return { query, parts };
   }
 }

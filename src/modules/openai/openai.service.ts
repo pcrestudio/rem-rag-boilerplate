@@ -14,7 +14,7 @@ export class OpenAIService {
 
   async query(prompt: string): Promise<string> {
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-2024-05-13',
+      model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
     });
 

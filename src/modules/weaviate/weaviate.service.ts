@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import weaviate, { WeaviateClient } from 'weaviate-client';
+import weaviate, { WeaviateClient, vectorizer } from 'weaviate-client';
 
 @Injectable()
 export class WeaviateService implements OnModuleInit {
@@ -43,6 +43,7 @@ export class WeaviateService implements OnModuleInit {
     if (!classExists) {
       await this.client.collections.create({
         name: 'Jurisprudencia',
+        vectorizers: vectorizer.none(),
         references: [],
         properties: [{ name: 'content', dataType: 'text' }],
       });
@@ -50,16 +51,38 @@ export class WeaviateService implements OnModuleInit {
   }
 
   async addDocument(id: string, text: string) {
-    await this.client.collections.get('Jurisprudencia').data.insert({
-      id,
-      properties: { content: text },
-    });
+    try {
+      await this.client.collections.get('Jurisprudencia').data.insert({
+        id,
+        properties: { content: text },
+      });
+    } catch (err) {
+      console.error('⚠️ Error al insertar en Weaviate:', err.response?.data || err.message);
+      return { success: false, error: 'Error al guardar en Weaviate' };
+    }
+
+  }
+
+  async addChunk(id: string, data: { content: string; source: string; chunkIndex: number }) {
+    try {
+      await this.client.collections.get('Jurisprudencia').data.insert({
+        id,
+        properties: {
+          content: data.content,
+          source: data.source,
+          chunkIndex: data.chunkIndex,
+        },
+      });
+    } catch (err) {
+      console.error('⚠️ Error al insertar chunk en Weaviate:', err.response?.data || err.message);
+      throw err;
+    }
   }
 
   async search(query: string) {
     const result = await this.client.collections
       .get('Jurisprudencia')
-      .query.nearText(query);
+      .query.bm25(query);
 
     return result.objects.map((doc) => doc.properties.content);
   }
